@@ -12,7 +12,8 @@ permissions:
 
 jobs:
   get-workflow-id:
-    outputs:
+  if: github.actor != 'github-classroom[bot]'
+  outputs:
       run_id: ${{steps.get_workflow.outputs.run_id}}
     runs-on: ubuntu-latest
 
@@ -24,7 +25,8 @@ jobs:
             workflow-file: 'workflow.yml'    
             status: 'success'
 
-  checkJob:   
+  checkJob: 
+    if: github.actor != 'github-classroom[bot]'
     needs: get-workflow-id
     runs-on: ubuntu-latest    
     outputs: 
@@ -41,6 +43,7 @@ jobs:
             
 
   autograding-reporter:    
+      if: github.actor != 'github-classroom[bot]'
       needs: [checkJob]
       runs-on: ubuntu-latest    
       steps:           
