@@ -1,6 +1,6 @@
 name: Autograding Tests
 'on':
-- push
+- workflow_dispatch
 - repository_dispatch
 permissions:
   checks: write
@@ -13,17 +13,17 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    - name: hello test
-      id: hello-test
+    - name: ererr
+      id: ererr
       uses: classroom-resources/autograding-command-grader@v1
       with:
-        test-name: hello test
+        test-name: ererr
         setup-command: ''
-        command: ".test ruyn"
+        command: ererer
         timeout: 10
     - name: Autograding Reporter
       uses: classroom-resources/autograding-grading-reporter@v1
       env:
-        HELLO-TEST_RESULTS: "${{steps.hello-test.outputs.result}}"
+        ERERR_RESULTS: "${{steps.ererr.outputs.result}}"
       with:
-        runners: hello-test
+        runners: ererr
