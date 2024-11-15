@@ -12,8 +12,8 @@ permissions:
 
 jobs:
   get-workflow-id:
-  if: github.actor != 'github-classroom[bot]'
-  outputs:
+    if: github.actor != 'github-classroom[bot]'
+    outputs:
       run_id: ${{steps.get_workflow.outputs.run_id}}
     runs-on: ubuntu-latest
 
