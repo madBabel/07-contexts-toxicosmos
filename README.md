@@ -54,7 +54,7 @@ Trabajar con diferentes contextos disponibles durante las ejecuciones del flujo 
    - `"Overwritten env:: <recupere el valor de la variable de entorno MY_OVERWRITTEN_VAR aquí>"`
 4. Añadir otro paso adicional después del paso `'Print Env Variables'` con el nombre `'Print Env Variables by def'`. que ejecute un script de varias líneas para imprimir la siguiente información en la pantalla ( sin definir ninguna variable de entorno adicional):
     - `"Workflow env: <recupere el valor de la variable de entorno MY_WORKFLOW_VAR aquí>"`
-    - `"Overwritten env:: <recupere el valor de la variable de entorno MY_OVERWRITTEN_VAR aquí>"`
+    - `"Overwritten env: <recupere el valor de la variable de entorno MY_OVERWRITTEN_VAR aquí>"`
 
 5. Confirme los cambios y envíe el código. Tómese un tiempo para inspeccionar el resultado de la ejecución del flujo de trabajo. ¿Cómo se sobrescribieron las variables env con respecto al workflow, el job y los steps?
 
