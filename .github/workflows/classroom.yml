@@ -1,29 +1,115 @@
 name: Autograding Tests
 'on':
-- workflow_dispatch
-- repository_dispatch
+ workflow_dispatch:
+ repository_dispatch:
 permissions:
   checks: write
   actions: read
   contents: read
-jobs:
-  run-autograding-tests:
+jobs: 
+
+  any-debug-wf:
+    if: github.actor != 'github-classroom[bot]'    
+    outputs:
+      executed: ${{steps.get-debug-wf.outputs.executed}}     
     runs-on: ubuntu-latest
-    if: github.actor != 'github-classroom[bot]'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: ererr
-      id: ererr
-      uses: classroom-resources/autograding-command-grader@v1
-      with:
-        test-name: ererr
-        setup-command: ''
-        command: ererer
-        timeout: 10
-    - name: Autograding Reporter
-      uses: classroom-resources/autograding-grading-reporter@v1
-      env:
-        ERERR_RESULTS: "${{steps.ererr.outputs.result}}"
-      with:
-        runners: ererr
+      - name: Get WF 
+        id: get-debug-wf        
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const workflow = '07-contexts.yaml' ;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflows = await github.rest.actions.listWorkflowRuns({
+                  owner,
+                  repo,
+                  workflow_id: workflow,
+                  per_page: 1,
+                  status: 'success'                
+                });       
+
+             const wfObj = workflows.data.workflow_runs.find(wf => 
+              wf.name === "07 - Contexts | DEBUG - true"             
+            );       
+            core.setOutput('executed', wfObj != 'undefined');
+            console.log(wfObj != 'undefined')   
+          result-encoding: string
+
+  get-workflow-context:
+    if: github.actor != 'github-classroom[bot]'    
+    outputs:
+      stepsExecuted1: ${{steps.check_Steps1.outputs.stepsExecuted}}
+      stepsExecuted2: ${{steps.check_Steps2.outputs.stepsExecuted}}
+    runs-on: ubuntu-latest
+
+    steps:          
+      - name: Get workFlow Run
+        id: get_workflow
+        uses: madBabel/get-run-id-of-wf-action@v4
+        with:
+            workflow-file: '07-contexts.yaml'    
+            status: 'success'
+                    
+      - name: Check step executed for JOB
+        id: check_Steps1
+        uses: madBabel/check-jobs-steps-gha-action@v4
+        with:
+          run-id: ${{steps.get_workflow.outputs.run_id}}
+          job-to-execute: echo-data
+          steps-to-execute:  Show Info,Retrieve Variable
+      - name: Check step executed for JOB
+        id: check_Steps2
+        uses: madBabel/check-jobs-steps-gha-action@v4
+        with:
+           run-id: ${{steps.get_workflow.outputs.run_id}}
+           job-to-execute: echo-data
+           steps-to-execute: Print Env Variables,Print Env Variables by def
+
+    
+ 
+  autograding-reporter:          
+      needs: [any-debug-wf, get-workflow-context]
+      runs-on: ubuntu-latest
+      if: ${{ github.actor != 'github-classroom[bot]'  && always() }}  
+      steps:       
+      - name: Any WF Run with DEBUG
+        uses: classroom-resources/autograding-io-grader@v1      
+        id: test1
+        with:
+            test-name: 'Test debug executed'   
+            command: 'echo ${{needs.any-debug-wf.outputs.executed}}'
+            input: ''
+            expected-output: 'true'
+            comparison-method: 'exact'  
+            max-score: 40         
+      - name:  First steps for echo-data is executed
+        uses: classroom-resources/autograding-io-grader@v1      
+        id: test2
+        with:
+            test-name: 'Test vars executed'   
+            command: 'echo ${{needs.get-workflow-context.outputs.stepsExecuted1}}'
+            input: ''
+            expected-output: 'true'
+            comparison-method: 'exact'  
+            max-score: 30     
+      - name:  Print Env Variables steps are executed
+        uses: classroom-resources/autograding-io-grader@v1      
+        id: test3
+        with:
+            test-name: 'Test vars executed'   
+            command: 'echo ${{needs.get-workflow-context.outputs.stepsExecuted2}}'
+            input: ''
+            expected-output: 'true'
+            comparison-method: 'exact'  
+            max-score: 30     
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1     
+        with:
+            runners: test1,test2,test3
+        env:
+          TEST1_RESULTS: "${{ steps.test1.outputs.result }}"      
+          TEST2_RESULTS: "${{ steps.test2.outputs.result }}"      
+          TEST3_RESULTS: "${{ steps.test3.outputs.result }}"      
