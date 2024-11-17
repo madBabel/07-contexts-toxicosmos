@@ -1,96 +1,218 @@
+# Ejercicio: Flujos avanzados con GitHub Actions
+
 ## Objetivo
-Trabajar con diferentes contextos disponibles durante las ejecuciones del flujo de trabajo.
 
-## Apartados
+Consolidar conocimientos sobre expresiones, variables de entorno y funciones en GitHub Actions mediante la implementación de un flujo de trabajo práctico y multifuncional.
 
-### Uso de contextos de github & vars. Tareas:
+---
 
-1. Crear un archivo llamado 07-contexts.yaml en la carpeta .github/workflows en la raíz del repositorio. Los datos del workflow deben ser los siguientes:
-   - nombre: 07 - Contexts. 
-   - desencadentes:
-      - push
-      - workflow_dispatch
-   - Trabajos:
-     - `echo-data`, debería ejecutarse en ubuntu-latest y con dos steps:
-       - `Show Info`, que imprime las siguientes líneas que contienen información del contexto de github (consejo: usar un script de varias líneas con varios comandos de eco):
-          ```shell
-          "Nombre del evento: <recupere el nombre del evento aquí>"
-          "Ref: <recupere la referencia aquí>"
-          "SHA: <recupere el sha de commit aquí>"
-          "Actor: <recupere el nombre del actor aquí>"
-          "Flujo de trabajo: <recupere el nombre del workflow aquí>"
-          "ID de ejecución: <recupere el ID de ejecución aquí>"
-          "Número de ejecución: <recupere el número de ejecución aquí>"
-          ```
-       - `Retrieve Variable`, que imprime dos lineas:
-           - una que contiene el valor de una variable del repositorio denominada `MY_VAR`.
-           - otra que contiene el valor de una variable del repositorio denominada `ORG_VAR`.
+## Tareas
 
-2. Crear una variable de repositorio denominada `MY_VAR`. Consultar la sección de TIPS a continuación para saber paso a paso cómo crear variables de repositorio. Establezcer el valor de esta variable en `hola mundo`.
-3. Confirmar los cambios y subir (push) el código en la rama main. Inspeccionar el resultado de la ejecución del workflow. 
+1. **Crear un archivo de flujo de trabajo** llamado `08-expressions.yaml` en la carpeta `.github/workflows` en la raíz del repositorio. El flujo debe cumplir con las siguientes características:
+   
+   * **Nombre:** 08 Expressions
+   * **Desencadenantes:** 
+    - `pull request`
+    - `workflow_dispatch`. 
+      - Agregar un parámetro de entrada llamado `debug` de tipo booleano con un valor predeterminado `false`.
+      - Agregar un parámetro de entrada llamado `fail` de tipo booleano con un valor predeterminado `false`.
+   * **Variables de entorno a nivel de workflow:**
+     * `WORKFLOW_VAR`: `'This is a workflow-level variable'`.
+     * `OVERWRITTEN`: `'Default workflow value'`.
+2. **Definir los trabajos** dentro del flujo de trabajo:
+   
+   #### **Job: debug-check**
+   
+   * Ejecutarse en `ubuntu-latest`.
+   * **Variables de entorno a nivel de job:**
+     * `JOB_VAR`: `'This is a job-level variable'`.
+     * `OVERWRITTEN`: `'Overwritten at job level'`.
+   
+   **Steps:**
+   
+   * **Step 1:** _"[Debug] Print Debug Info"_
+     
+     * Ejecutarse solo si la entrada `inputs.debug` es `true`.
+     * Imprimir:
+     
+     ```bash
+     "Triggered by: ${{ github.event_name }}" 
+     "Branch: ${{ github.ref }}" 
+     "Commit SHA: ${{ github.sha }}" 
+     "Runner OS: ${{ runner.os }}"
+     ```
+   * **Step 2:** _"[Debug] Triggered from Main"_
+     
+     * Ejecutarse solo si `inputs.debug` es `true` y la rama es `main`.
+     * Imprimir: `"Triggered from main branch!"`.
+   * **Step 3:** _"Print Variables"_
+     
+     * Definir variables de entorno a nivel de step:
+       * `STEP_VAR`: `'Step-level variable'`.
+     * Imprimir las siguientes líneas:
+     
+     ```bash
+     "Step var: ${{ env.STEP_VAR }}" 
+     "Job var: ${{ env.JOB_VAR }}" 
+     "Workflow var: ${{ env.WORKFLOW_VAR }}" 
+     "Overwritten: ${{ env.OVERWRITTEN }}"
+     ```
+   * **Step 4:** _"Overwrite and Print"_
+     
+     * Sobrescribir `OVERWRITTEN` con el valor `'Overwritten at step level'` y confirmar el resultado:
+     
+     ```bash
+     "Overwritten var: $OVERWRITTEN"
+     ```
+   
+   #### **Job: functions-pr-data**
+   
+   * Ejecutarse en `ubuntu-latest`.
+   * **Steps:**
+     
+     * **Step 1:** _"Print PR Info"_
+       * Ejecutarse solo si el evento es `pull_request`.
+       * Imprimir el título de la PR y las etiquetas de la PR en formato JSON utilizando `toJSON`.
+     
+     ```yaml
+     steps:
+       - name: Print PR labels
+         run: |
+           cat << EOF
+           ${{ toJSON(github.event.pull_request.labels) }}
+           EOF
+     ```
+     
+     * **Step 2:** _"Bug Check"_
+       
+       * Ejecutarse solo si el flujo no ha sido cancelado y el título de la PR contiene `"fix"`.
+       * Imprimir: `"This PR fixes a bug."`
+     * **Step 3:** _"Sleep and Cancel"_
+       
+       * Ejecutar `sleep 20` para permitir la cancelación manual del workflow.
+     * **Step 4:** _"Failing Step"_
+       * Ejecutarse solo si la entrada `inputs.fail` es `true`.
+       * Salir con un código distinto de cero.
+     * **Step 5:** _"Conditional Step - Success"_
+       
+       * Ejecutarse solo si los pasos anteriores tienen éxito.
+       * Imprimir: `"All previous steps succeeded."`
+     * **Step 6:** _"Conditional Step - Failure"_
+       
+       * Ejecutarse si algún paso anterior falló.
+       * Imprimir: `"A previous step failed."`
+     * **Step 7:** _"Print Always"_
+       
+       * Ejecutarse siempre que el flujo no sea cancelado.
+       * Imprimir: `"This step runs unless the workflow is cancelled."`
+     * **Step 8:** _"On Cancel"_
+       
+       * Ejecutarse solo si el flujo ha sido cancelado.
+       * Imprimir: `"Workflow cancelled."`
+3. **Confirmar y probar** el flujo de trabajo:
+   
+   * Ejecutar el flujo desde la interfaz de usuario con diferentes valores rama,  `debug` y `fail` Observando resultados.
+   * Realizar pruebas con pull requests:
+     1. Crear una nueva rama y modificar cualquier archivo, por ejemplo, `README.md`.
+     2. Crear una **Pull Request** con un título que incluya la palabra `"fix"` (por ejemplo: `"Fix: typo in README"`), y una label bug.
+     3. Observar los resultados del flujo de trabajo. Confirma que el step `"Bug Check"` imprime el mensaje `"This PR fixes a bug."`. y se imprimen labels en el step print PR info
+     4. Cambiar el título de la PR para que no incluya `"fix"` y volver a inspeccionar los resultados.
+   * Cancelar manualmente el flujo nada mas iniciarlo en la ejeción para observar los pasos específicos relacionados con la cancelación. Fijarse en el step On Cancel
 
-### Uso de contextos no válidos en GitHub Actions. Tareas:
-
-1. Añadir una nueva linea de clave-valor al yaml, `"run-name"`. Ésta se indica n el nivel superior, justo entre 'name' y 'on'. El run-name permite definir el nombre de la ejecución del flujo de trabajo que aparece en la interfaz de usuario. Establecer el valor de run-name en `My custom workflow run name - ${{ runner.os }}`. 
-2. Confirmar los cambios y enviar el código. Tómese un tiempo para inspeccionar el resultado de la ejecución del flujo de trabajo. ¿Qué mensaje de error apareció?
-
-### Uso de contexto 'inputs' en GitHub Actions. Tareas:
-
-1. Reemplace el run-name con `07 - Contexts | DEBUG - ${{ inputs.debug }}`
-2. Agregue una configuración al evento "workflow_dispatch" para que pueda definir un parámetro de entrada para el workflow. Para hacer esto, agregue un nuevo valor 'input' al desdencandenate workflow_dispatch. El parámetro debe llamarse `debug`, tener un tipo booleano y un valor predeterminado falso. Si no está seguro de cómo hacerlo, consulte la sección de TIPS a continuación para conocer paso a paso cómo definir inputs para el evento workflow_dispatch.
-3. Confirmar los cambios y subir (push) el código en la rama main. Inspeccionar el resultado de la ejecución del workflow. ¿Qué valor se completó para la parámetro de debug?
-4. Ahora ejecute el workflow desde la interfaz de usuario y pruébelo con diferentes variaciones para la entrada de depuración. ¿Cómo afecta esto al resultado de las ejecuciones del flujo de trabajo?
-
-### Uso de contexto 'env' en GitHub Actions. Tareas:
-
-1. Añadir una nueva linea de clave al yaml, "env". Ésta se indica en el nivel superior, junto con 'name' y 'on'. Añada dos variables de entorno:
-   - `MY_WORKFLOW_VAR`, con el valor establecido en `'workflow'`
-   - `MY_OVERWRITTEN_VAR`, con el valor establecido en `'workflow'`
-2. En el job 'echo-data', agregue una clave env para definir dos variables de entorno a nivel de job:
-   - `MY_JOB_VAR`, con el valor establecido en `'job'`
-   - `MY_OVERWRITTEN_VAR`, con el valor establecido en `'job'`
-3. Añadir un paso adicional después del paso `'Retrieve Variable'` con el nombre `'Print Env Variables'`. Agregar una clave 'env' para definir una única variable de entorno `MY_OVERWRITTEN_VAR`, con el valor `'step'`, y además, que ejecute un script de varias líneas para imprimir la siguiente información en la pantalla:
-   - `"Workflow env: <recupere el valor de la variable de entorno MY_WORKFLOW_VAR aquí>"`
-   - `"Overwritten env:: <recupere el valor de la variable de entorno MY_OVERWRITTEN_VAR aquí>"`
-4. Añadir otro paso adicional después del paso `'Print Env Variables'` con el nombre `'Print Env Variables by def'`. que ejecute un script de varias líneas para imprimir la siguiente información en la pantalla ( sin definir ninguna variable de entorno adicional):
-    - `"Workflow env: <recupere el valor de la variable de entorno MY_WORKFLOW_VAR aquí>"`
-    - `"Overwritten env: <recupere el valor de la variable de entorno MY_OVERWRITTEN_VAR aquí>"`
-
-5. Confirme los cambios y envíe el código. Tómese un tiempo para inspeccionar el resultado de la ejecución del flujo de trabajo. ¿Cómo se sobrescribieron las variables env con respecto al workflow, el job y los steps?
-
-
-### Preparación de repo para futuros usos. Tareas:
-
-1. Reducir la lista de desencadenadores para dejar solo workflow_dispatch, para evitar que este workflow se ejecute con cada push y ensucie la lista de ejecuciones de workflow.
+---
 
 ## Tips
-- Para crear una variable de repositorio, siga estos pasos:
 
-  1. Vaya a la pestaña Configuración de su repositorio.
-  2. En el menú de la izquierda, haga clic en Secretos y Variables.
-  3. Haga clic en la pestaña Variables.
-  4. Haga clic en el botón Nueva variable.
-  5. En el campo Nombre, escriba MY_VAR.
-  6. En el campo Valor, escriba hola mundo.
-  7. Haga clic en el botón Agregar.
-  8. Listo! Ahora puede acceder a esta variable en su flujo de trabajo utilizando la sintaxis ${{ var.MY_VAR }}.
+#### **Condiciones en jobs y steps**
 
+* Para ejecutar jobs y steps de manera condicional, usa la palabra clave `if`. Por ejemplo:
+  
+  ```yaml
+  jobs:
+    example:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Run if triggered by push
+          if: github.event_name == 'push'
+          run: echo "Triggered by a push event"
+  ```
+* Para verificar el estado de pasos previos, usa funciones como `success()` o `failure()`.
+  
+  * `success()`: Se evalúa como verdadero si todos los pasos anteriores se completaron correctamente.
+  * `failure()`: Se evalúa como verdadero si alguno de los pasos anteriores falló.
 
-- Para definir inputs para el evento workflow_dispatch,aañada un nuevo valor 'inputs' al evento workflow_dispatch. Por ejemplo:
-   ```yaml
-   on:
-     workflow_dispatch:
-       inputs:
-         debug:
-           description: 'Debug mode'
-           type: boolean           
-           default: false
-   ```
-    Para acceder al valor de la entrada en su flujo de trabajo, utilice la sintaxis ${{ inputs.debug }}. Tras esto, al ejecutar el flujo de trabajo desde la interfaz de usuario, aparecerá un cuadro de diálogo que le permitirá definir el valor de la entrada de debug. 
+#### **Definición de variables de entorno**
 
+* Variables de entorno pueden definirse a nivel de:
+  
+  * **Workflow:**
+    
+    ```yaml
+    env:
+      WORKFLOW_VAR: 'Hello from workflow'
+    ```
+  * **Job:**
+    
+    ```yaml
+    jobs:
+      example:
+        env:
+          JOB_VAR: 'Hello from job'
+    ```
+  * **Step:**
+    
+    ```yaml
+    steps:
+      - name: Define env vars
+        env:
+          STEP_VAR: 'Hello from step'
+    ```
+* Acceso a variables:
+  
+  * Con el contexto `env`: `${{ env.VAR_NAME }}`
+  * Directamente en shell: `$VAR_NAME`
 
-- Para definir variables de entorno en su flujo de trabajo, utilice la clave 'env' a nivel de workflow, job o step. Por ejemplo:
-   ```yaml
-   env:
-     MY_VAR: 'value'
-   ```
+#### **Uso de expresiones**
+
+* Usa operadores condicionales para simplificar configuraciones:
+  * Valor por defecto: `${{ expresión || valor_predeterminado }}`
+  * Condicional tipo ternario: `${{ condición && valor_si_true || valor_si_false }}`
+
+---
+
+## Diagrama de flujo
+
+Jobs:
+
+```mermaid
+graph TD
+    A[Workflow Dispatch Trigger] --> B[debug-check]
+    A --> G[functions-pr-data]
+```
+
+Steps for debug-check
+
+```mermaid
+graph TD
+    B[J: debug-check]   
+    B --inputs.debug == true --> C[S: Print Debug Info]
+    B -- inputs.debug == true AND branch == main --> D[S: Triggered from Main]
+    B --> E[S: Print Variables]
+    B --> F[S: Overwrite and Print]
+```
+
+Steps for functions-pr-data
+
+```mermaid
+graph TD  
+    G[J: functions-pr-data]
+    G --is pull_request --> H[S: Print PR data]
+    G -- PR title contains 'fix' --> J[S: Bug Check]
+    G --> K[S: Sleep and Cancel]
+    G --> L[S: Failing Step]
+    G -- if success--> M[S: Conditional Step - Success]
+    G -- if: failure --> N[S: Conditional Step - Failure]
+    G -- if: not cancelled --> O[S Print Always]
+    G -- if: cancelled --> P[S: On Cancel]
+```
+
