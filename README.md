@@ -45,7 +45,7 @@ Trabajar con diferentes contextos disponibles durante las ejecuciones del flujo 
   7. Haga clic en el botón Agregar.
   8. Listo! 
 
-Ahora puede acceder a esta variable en su flujo de trabajo utilizando la sintaxis ${{ var.MY_VAR }}.
+Ahora puede acceder a esta variable en su flujo de trabajo utilizando la sintaxis ${{ vars.MY_VAR }}.
 
 
 - Para definir inputs para el evento workflow_dispatch,aañada un nuevo valor 'inputs' al evento workflow_dispatch. Por ejemplo:
